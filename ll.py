@@ -1,5 +1,20 @@
+#!/usr/bin/python3
 import re
 
+## tmp ################
+import ply_util as pu
+pu.def_tokens(
+    PLUS=r"\+",
+    ID=r"[a-zA-Z]+"
+    )
+lx = pu.lex()
+lx.input("a + bcd + okok")
+while(True):
+    token = lx.token()
+    if token:
+        print(token)
+    else: break
+#######################
 
 class Tokens:
     @staticmethod

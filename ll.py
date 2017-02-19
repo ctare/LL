@@ -54,9 +54,26 @@ class Director:
 
 class Language:
     def __init__(self):
-        self.director = Director()
+        self.directors = Director()
+
+    def director(self):
+        rules = {}
+        for grammer, firsts in self.directors.rule_map.items():
+            rules[grammer] = {}
+            for first, rule in firsts.items():
+                for fi in terminals(first):
+                    if fi == EMPTY:
+                        for follow in terminals(grammer.follow()):
+                            rules[grammer][follow] = [EMPTY]
+                    else:
+                        rules[grammer][fi] = rule
+        return rules
+
+    def add_director(self, grammer, rule):
+        self.directors.add(grammer, rule)
 
     def execute(self, code):
+        director = self.director()
         lx.input(code)
         while True:
             t = lx.token()
@@ -96,7 +113,7 @@ class Grammer:
 
     def add_first(self, rule):
         self.firsts.add(rule[0].first())
-        self.language.director.add(self, rule)
+        self.language.add_director(self, rule)
 
     def add_follow(self, rule):
         length = len(rule)

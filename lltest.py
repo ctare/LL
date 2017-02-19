@@ -36,23 +36,9 @@ def follow_match(origin_list, grammer):
     return not (origin_list or no_such), [x.name for x in origin_list], [x.name for x in no_such]
 
 
-
-def calc_director(grammer):
-    director = grammer.language.director
-    firsts = director.get(grammer)
-    rules = {}
-    for first, rule in firsts.items():
-        for fi in terminals(first):
-            if fi == EMPTY:
-                for follow in terminals(grammer.follow()):
-                    rules[follow] = [EMPTY]
-            else:
-                rules[fi] = rule
-    return rules
-
 def director_match(origin_list, grammer):
     origin_list = list(origin_list)
-    target_dict = calc_director(grammer)
+    target_dict = grammer.language.director()[grammer]
     origin_dict = dict(zip(tlist, origin_list))
     not_enough = []
     too_many = []

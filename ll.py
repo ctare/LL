@@ -55,6 +55,7 @@ class Director:
 class Language:
     def __init__(self):
         self.directors = Director()
+        self.start = None
 
     def director(self):
         rules = {}
@@ -73,14 +74,34 @@ class Language:
         self.directors.add(grammer, rule)
 
     def execute(self, code):
-        director = self.director()
         lx.input(code)
+        code = []
         while True:
             t = lx.token()
             if not t:
                 break
-            print(t)
-        print(code)
+            code.append(globals()[t.type])
+        trace(self.start, code, self.director())
+
+
+def trace(start, inp, director):
+    stack = [EOL, start]
+    inp.append(EOL)
+    while True:
+        if not (inp or stack): break
+        rule, terminal = stack[-1], inp[0]
+        del stack[-1]
+        if rule == terminal:
+            del inp[0]
+            continue
+        # elif rule == EMPTY:
+        next_rule = director[rule][terminal]
+        if next_rule == [EMPTY]:
+            continue
+        else:
+            print(sss([rule]), sss(next_rule))
+            for x in next_rule[::-1]:
+                stack.append(x)
 
 
 class Terminal:
@@ -151,6 +172,7 @@ class Grammer:
 
     def start(self):
         self.follows.add(EOL)
+        self.language.start = self
         return self
 
     def define(self, language):
@@ -201,6 +223,15 @@ e = Grammer(t).define(test_lang).start()
 f |= Grammer(LP, e, RP)
 t |= Grammer(t, TIM, f)
 e |= Grammer(e, PLUS, t)
+
+to_s = {e: "e", e.sub: "e_sub", t: "t", t.sub: "t_sub", f: "f"}
+def sss(xx):
+    return [ss(x) for x in xx]
+def ss(t_or_g):
+    if isinstance(t_or_g, Terminal):
+        return t_or_g.name
+    else:
+        return to_s[t_or_g]
 
 test_lang.execute("""
         a + b * c

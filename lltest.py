@@ -203,6 +203,10 @@ def F():
         print(too_many)
     assert match
 
+@test("trace")
+def F():
+    test_lang.execute("a + b * c")
+
 
 print("\n - errors %d -\n%s" %(len(errors), "\n".join(map(lambda x: x[1], errors))))
 for f, m in errors:

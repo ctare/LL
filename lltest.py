@@ -36,6 +36,36 @@ def follow_match(origin_list, grammer):
     return not (origin_list or no_such), [x.name for x in origin_list], [x.name for x in no_such]
 
 
+
+def calc_director(grammer):
+    director = grammer.language.director
+    firsts = director.get(grammer)
+    rules = {}
+    for first, rule in firsts.items():
+        for fi in terminals(first):
+            if fi == EMPTY:
+                for follow in terminals(grammer.follow()):
+                    rules[follow] = [EMPTY]
+            else:
+                rules[fi] = rule
+    return rules
+
+def director_match(origin_list, grammer):
+    origin_list = list(origin_list)
+    target_dict = calc_director(grammer)
+    origin_dict = dict(zip(tlist, origin_list))
+    not_enough = []
+    too_many = []
+    for k, v in origin_dict.items():
+        try:
+            if target_dict[k] != v:
+                not_enough.append(target_dict[k])
+        except KeyError:
+            if v != n:
+                too_many.append(v)
+    return not (not_enough or too_many), not_enough, too_many
+
+
 def p(*inspect):
     print("test message:", inspect)
 # ID = Terminal("ID")
@@ -134,6 +164,59 @@ def F():
     match, at, dif = follow_match([PLUS, TIM, RP, EOL], f)
     if at or dif: print(at, dif)
     assert match
+
+n = None
+tlist = [ID, PLUS, TIM, LP, RP, EOL]
+@test("e director")
+def F():
+    match, not_enough, too_many = director_match([
+        [t, e.sub], n, n, [t, e.sub], n, n
+        ], e)
+    if not_enough or too_many:
+        print(not_enough)
+        print(too_many)
+    assert match
+
+@test("e sub director")
+def F():
+    match, not_enough, too_many = director_match([
+        n, [PLUS, t, e.sub], n, n, [EMPTY], [EMPTY]
+        ], e.sub)
+    if not_enough or too_many:
+        print(not_enough)
+        print(too_many)
+    assert match
+
+@test("t director")
+def F():
+    match, not_enough, too_many = director_match([
+        [f, t.sub], n, n, [f, t.sub], n, n
+        ], t)
+    if not_enough or too_many:
+        print(not_enough)
+        print(too_many)
+    assert match
+
+@test("t sub director")
+def F():
+    match, not_enough, too_many = director_match([
+        n, [EMPTY], [TIM, f, t.sub], n, [EMPTY], [EMPTY]
+        ], t.sub)
+    if not_enough or too_many:
+        print(not_enough)
+        print(too_many)
+    assert match
+
+@test("f director")
+def F():
+    match, not_enough, too_many = director_match([
+        [ID], n, n, [LP, e, RP], n, n
+        ], f)
+    if not_enough or too_many:
+        print(not_enough)
+        print(too_many)
+    assert match
+
 
 print("\n - errors %d -\n%s" %(len(errors), "\n".join(map(lambda x: x[1], errors))))
 for f, m in errors:

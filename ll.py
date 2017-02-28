@@ -1,26 +1,32 @@
 #!/usr/bin/python3
 import re
-
-## tmp ################
-import ply_util as pu
-pu.def_tokens(
-    PLUS=r"\+",
-    TIM=r"\*",
-    LP=r"\(",
-    RP=r"\)",
-    ID=r"[a-zA-Z]+"
-    )
-
-lx = pu.lex()
-#######################
+import lexical
 is_terminal = re.compile("[A-Z]+")
 
 
-class TokenList(list):
-    @staticmethod
-    def parse(code):
-        pass
+class TraceError(Exception):
+    def __init__(self, terminal, rule):
+        super().__init__("{} {}".format(terminal, rule))
 
+
+class Rule(list):
+    def get_fnc(self):
+        return Rule.fnc
+
+    def set_fnc(self, fnc):
+        self.fnc = fnc
+
+    @staticmethod
+    def fnc(p):
+        for i, v in enumerate(p):
+            if isinstance(v, Terminal):
+                p[i] = v.name
+            else:
+                print(v)
+        return p
+    # def set_fnc(self):
+    #     self.fnc 
+    
 
 class Fset:
     def __init__(self):
@@ -65,7 +71,7 @@ class Language:
                 for fi in terminals(first):
                     if fi == EMPTY:
                         for follow in terminals(grammer.follow()):
-                            rules[grammer][follow] = [EMPTY]
+                            rules[grammer][follow] = Rule([EMPTY])
                     else:
                         rules[grammer][fi] = rule
         return rules
@@ -73,35 +79,46 @@ class Language:
     def add_director(self, grammer, rule):
         self.directors.add(grammer, rule)
 
-    def execute(self, code):
-        lx.input(code)
-        code = []
-        while True:
-            t = lx.token()
-            if not t:
-                break
-            code.append(globals()[t.type])
+    def execute(self, code, token_defines):
+        code = [x.terminal for x in token_defines.parse(code)]
         trace(self.start, code, self.director())
 
 
 def trace(start, inp, director):
     stack = [EOL, start]
     inp.append(EOL)
+    back = []
     while True:
         if not (inp or stack): break
-        rule, terminal = stack[-1], inp[0]
-        del stack[-1]
+        # print("%-40s" %sss(stack), sss(inp))
+        rule, terminal = stack.pop(), inp[0]
         if rule == terminal:
             del inp[0]
             continue
-        # elif rule == EMPTY:
-        next_rule = director[rule][terminal]
-        if next_rule == [EMPTY]:
-            continue
-        else:
-            print(sss([rule]), sss(next_rule))
+        try:
+            next_rule = director[rule][terminal]
+        except:
+            raise TraceError(terminal, rule)
+        # if next_rule == [EMPTY]:
+        #     continue
+        # else:
+        print(sss([rule])[0], "->", " ".join(sss(next_rule)))
+        back.append(next_rule)
+        if next_rule != [EMPTY]:
             for x in next_rule[::-1]:
                 stack.append(x)
+
+    stack = []
+    for rule in back[::-1]:
+        result = []
+        for i, v in enumerate(rule):
+            if not isinstance(v, Terminal):
+                result.append(stack.pop())
+            else:
+                result.append(v)
+        # stack.append(rule.get_fnc()(result))
+        stack.append(rule.get_fnc()(result))
+    print(stack)
 
 
 class Terminal:
@@ -115,13 +132,9 @@ class Terminal:
         return self.name
 
 
-class Nonterminal:
-    pass
-
-
 class Grammer:
     def __init__(self, *rule):
-        self.rules = [list(rule)]
+        self.rules = [Rule(rule)]
         self.sub = None
         self.defined = False
         self.is_sub = False
@@ -216,6 +229,14 @@ DIV = Terminal("DIV")
 TIM = Terminal("TIM")
 RP = Terminal("RP")
 LP = Terminal("LP")
+
+tokens = lexical.TokenDefines({
+    PLUS:r"\+",
+    TIM:r"\*",
+    LP:r"\(",
+    RP:r"\)",
+    ID:r"[a-zA-Z]+"
+    }).ignore(r"[ \n]+")
 f = Grammer(ID).define(test_lang)
 t = Grammer(f).define(test_lang)
 e = Grammer(t).define(test_lang).start()
@@ -232,7 +253,10 @@ def ss(t_or_g):
         return t_or_g.name
     else:
         return to_s[t_or_g]
-
-test_lang.execute("""
-        a + b * c
-""")
+while True:
+    try:
+        test_lang.execute(input())
+    except EOFError:
+        test_lang.execute("a * (b + c)", tokens)
+        break
+    print("===========")
